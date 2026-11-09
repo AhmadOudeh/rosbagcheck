@@ -4,6 +4,7 @@ Uses the official mcap Python writer, which is independent of the C++ reader ins
 All names and data are invented: a robot "rover-01" with three standard ROS topics.
 """
 import subprocess
+from pathlib import Path
 
 from mcap.writer import CompressionType, Writer
 
@@ -11,14 +12,23 @@ START_NS = 1_700_000_000 * 1_000_000_000  # fixed start time, so every run write
 SECOND_NS = 1_000_000_000
 HEALTHY_RATES_HZ = {"/camera/image_raw": 20, "/scan": 10, "/odom": 50}
 DURATION_S = 10
+EXAMPLE_RULES = Path(__file__).resolve().parents[2] / "examples" / "rules.yaml"
+
+
+def periodic(rate_hz, duration_s=DURATION_S, silent=None):
+    """Log times (ns) of one sensor sending at rate_hz from 0 to duration_s.
+    silent=(3.0, 7.0): no messages strictly between 3 s and 7 s, so the longest gap is 4 s."""
+    count = round(duration_s * rate_hz) + 1
+    times = [START_NS + round(i * SECOND_NS / rate_hz) for i in range(count)]
+    if silent:
+        begin, end = (START_NS + round(s * SECOND_NS) for s in silent)
+        times = [t for t in times if not begin < t < end]
+    return times
 
 
 def healthy_topics():
     """Log times (ns) per topic: every sensor sends at its rate for the whole recording."""
-    return {
-        topic: [START_NS + i * SECOND_NS // rate for i in range(DURATION_S * rate + 1)]
-        for topic, rate in HEALTHY_RATES_HZ.items()
-    }
+    return {topic: periodic(rate) for topic, rate in HEALTHY_RATES_HZ.items()}
 
 
 def write_mcap(path, topics, closed=True, compression="none"):
@@ -53,7 +63,7 @@ def write_sums(folder):
 def make_recording(folder, topics=None, files=1, **write_options):
     """A complete recording folder: `files` MCAP files split by time, plus SHA256SUMS."""
     folder.mkdir(parents=True, exist_ok=True)
-    topics = topics or healthy_topics()
+    topics = healthy_topics() if topics is None else topics
     for index in range(files):
         # File k gets every files-th message of each topic: simple, and every file has data.
         part = {topic: times[index::files] for topic, times in topics.items()}

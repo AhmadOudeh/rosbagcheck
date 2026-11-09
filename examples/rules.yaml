@@ -1,0 +1,14 @@
+# Rules for check 3 (sensors alive): rosbagcheck --expect examples/rules.yaml <folder>
+# Every listed topic is required unless "required: false". Limits are inclusive.
+topics:
+  - topic: /camera/image_raw
+    min_rate_hz: 15    # at least 15 messages per second on average
+    max_gap_s: 0.5     # never silent for more than 0.5 s
+  - topic: /scan
+    min_rate_hz: 8
+    max_gap_s: 0.5
+  - topic: /odom
+    min_rate_hz: 40
+    max_gap_s: 0.1
+  - topic: /diagnostics
+    required: false    # checked only if it is in the recording
