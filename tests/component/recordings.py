@@ -31,8 +31,9 @@ def healthy_topics():
     return {topic: periodic(rate) for topic, rate in HEALTHY_RATES_HZ.items()}
 
 
-def write_mcap(path, topics, closed=True, compression="none"):
-    """One MCAP file. closed=False is a recorder that was killed: no summary, no footer."""
+def write_mcap(path, topics, closed=True, compression="none", payload=b"{}"):
+    """One MCAP file. closed=False is a recorder that was killed: no summary, no footer.
+    payload: the data of every message (large payloads make large files for the speed tests)."""
     compression_type = {"none": CompressionType.NONE, "zstd": CompressionType.ZSTD, "lz4": CompressionType.LZ4}
     # Small chunks when not closed, so some messages are on disk, as with a real killed recorder.
     with open(path, "wb") as stream:
@@ -47,7 +48,7 @@ def write_mcap(path, topics, closed=True, compression="none"):
         messages = sorted((time, topic) for topic, times in topics.items() for time in times)
         for sequence, (time, topic) in enumerate(messages):
             writer.add_message(channel_id=channels[topic], log_time=time, publish_time=time,
-                               sequence=sequence, data=b"{}")
+                               sequence=sequence, data=payload)
         if closed:
             writer.finish()
     return path
