@@ -8,6 +8,8 @@
 #include "checksum.hpp"
 #include "closed.hpp"
 #include "report.hpp"
+#include "rules.hpp"
+#include "sensors.hpp"
 
 namespace {
 
@@ -27,8 +29,10 @@ int main(int argc, char** argv) {
   app.set_version_flag("--version", "rosbagcheck " ROSBAGCHECK_VERSION);
 
   std::vector<std::string> folders;
+  std::string rules_path;
   bool json = false;
   app.add_option("folders", folders, "Recording folders to check")->required();
+  app.add_option("--expect", rules_path, "Rules file (YAML): limits per topic for check 3");
   app.add_flag("--json", json, "Print a JSON report instead of text");
 
   try {
@@ -39,6 +43,15 @@ int main(int argc, char** argv) {
   }
 
   // Check all input first, so a typo in the last folder does not waste a long run.
+  std::vector<rosbagcheck::TopicRule> rules;
+  if (!rules_path.empty()) {
+    try {
+      rules = rosbagcheck::load_rules(rules_path);
+    } catch (const rosbagcheck::RulesError& error) {
+      std::cerr << "rosbagcheck: error: " << rules_path << ": " << error.what() << "\n";
+      return kInputError;
+    }
+  }
   for (const std::string& folder : folders) {
     if (!std::filesystem::is_directory(folder)) {
       std::cerr << "rosbagcheck: error: not a folder: " << folder << "\n";
@@ -53,7 +66,13 @@ int main(int argc, char** argv) {
     report.path = folder;
     report.copy = rosbagcheck::check_copy(folder);
     report.closed = rosbagcheck::check_closed(folder);
-    // Check 3 follows in its own pull request.
+    if (report.closed.status == rosbagcheck::Status::Pass) {
+      report.sensors =
+          rosbagcheck::check_sensors(rosbagcheck::list_recordings(folder), rules, report.topics);
+    } else {
+      // A file that was not closed may end anywhere: its numbers would mislead.
+      report.sensors.summary = "skipped: not every file closed properly";
+    }
 
     all_healthy = all_healthy && report.healthy();
     if (json) {
