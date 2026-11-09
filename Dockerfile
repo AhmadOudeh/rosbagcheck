@@ -4,7 +4,7 @@
 FROM ubuntu:24.04 AS dev
 ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
-        build-essential cmake nlohmann-json3-dev libcli11-dev libgtest-dev \
+        build-essential cmake libssl-dev nlohmann-json3-dev libcli11-dev libgtest-dev \
         python3 python3-venv \
     && rm -rf /var/lib/apt/lists/*
 COPY requirements-dev.txt /tmp/
@@ -17,7 +17,10 @@ COPY . /src
 RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --target rosbagcheck
 
 FROM ubuntu:24.04 AS runtime
-RUN useradd --create-home checker
+ARG DEBIAN_FRONTEND=noninteractive
+RUN apt-get update && apt-get install -y --no-install-recommends libssl3t64 \
+    && rm -rf /var/lib/apt/lists/* \
+    && useradd --create-home checker
 COPY --from=build /src/build/rosbagcheck /usr/local/bin/rosbagcheck
 USER checker
 WORKDIR /data

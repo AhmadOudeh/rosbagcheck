@@ -5,6 +5,7 @@
 #include <string>
 #include <vector>
 
+#include "checksum.hpp"
 #include "report.hpp"
 
 namespace {
@@ -49,7 +50,8 @@ int main(int argc, char** argv) {
   for (const std::string& folder : folders) {
     rosbagcheck::RecordingReport report;
     report.path = folder;
-    // The three checks are added here, one per pull request.
+    report.copy = rosbagcheck::check_copy(folder);
+    // Checks 2 and 3 follow in their own pull requests.
 
     all_healthy = all_healthy && report.healthy();
     if (json) {
