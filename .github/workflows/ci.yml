@@ -1,0 +1,27 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: test (${{ matrix.runner }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]  # x86-64 and arm64, see NFR-4
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build
+        run: scripts/dev.sh build
+      - name: Unit tests (C++)
+        run: scripts/dev.sh ctest --test-dir build --output-on-failure
+      - name: Component tests (Python)
+        run: scripts/dev.sh pytest
+      - name: Runtime image works
+        run: |
+          docker build -t rosbagcheck .
+          docker run --rm rosbagcheck --version
