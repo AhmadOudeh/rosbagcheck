@@ -21,6 +21,9 @@ jobs:
         run: scripts/dev.sh ctest --test-dir build --output-on-failure
       - name: Component tests (Python)
         run: scripts/dev.sh pytest
+      - name: Requirement table on the run page
+        if: always()  # most useful when a test failed
+        run: if [ -f build/requirements.md ]; then cat build/requirements.md >> "$GITHUB_STEP_SUMMARY"; fi
       - name: Runtime image works
         run: |
           docker build -t rosbagcheck .
