@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "checksum.hpp"
+#include "closed.hpp"
 #include "report.hpp"
 
 namespace {
@@ -51,7 +52,8 @@ int main(int argc, char** argv) {
     rosbagcheck::RecordingReport report;
     report.path = folder;
     report.copy = rosbagcheck::check_copy(folder);
-    // Checks 2 and 3 follow in their own pull requests.
+    report.closed = rosbagcheck::check_closed(folder);
+    // Check 3 follows in its own pull request.
 
     all_healthy = all_healthy && report.healthy();
     if (json) {

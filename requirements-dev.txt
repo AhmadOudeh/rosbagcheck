@@ -1,1 +1,4 @@
 pytest==8.3.3
+mcap==1.6.0          # writes the synthetic test recordings
+zstandard==0.23.0    # lets the mcap writer compress with zstd
+lz4==4.3.3           # ... and with lz4
