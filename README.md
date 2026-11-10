@@ -3,7 +3,11 @@
 rosbagcheck tells you with one command whether a ROS 2 field-test recording can be trusted: copied
 completely, closed properly, and every sensor sending the whole time.
 
-<!-- GIF: rosbagcheck on a healthy and a broken run -->
+
+
+https://github.com/user-attachments/assets/a6d17b82-9dc5-4274-b588-18c8e7e57ebb
+
+
 
 ## Why
 
