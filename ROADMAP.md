@@ -15,10 +15,16 @@ What v0.1 deliberately does not do, and what comes next. The scope of v0.1 is in
 
 ## Known limitations
 
-- Without `--expect`, check 3 only measures and never fails: a dead sensor is HEALTHY.
+- Without `--expect`, check 3 only measures and never fails: a dead sensor is HEALTHY ([#15](https://github.com/AhmadOudeh/rosbagcheck/issues/15)).
 - Check 3 reads every message record to get its time. Fine for a few GB; slow for very large runs.
+- Check 3 keeps the time of every message (8 bytes each), so its memory grows with the number of
+  messages: about 64 MB for 3.6 million messages (1 kHz for one hour).
+- Check 3 fails when two files overlap in time. This assumes that ROS 2 split files never overlap,
+  which is not yet tested with a real `ros2 bag record` session.
 - No live monitoring while recording, no repair of broken files, no GUI.
-- Open bugs: see the [issues labelled `bug`](https://github.com/AhmadOudeh/rosbagcheck/issues?q=is%3Aissue+is%3Aopen+label%3Abug).
+- Open bugs: [#9](https://github.com/AhmadOudeh/rosbagcheck/issues/9) a FAIL message can show a value equal to the limit (rounding),
+  [#10](https://github.com/AhmadOudeh/rosbagcheck/issues/10) the topic table is misaligned for long topic names, [#15](https://github.com/AhmadOudeh/rosbagcheck/issues/15) see above,
+  [#16](https://github.com/AhmadOudeh/rosbagcheck/issues/16) some error messages name the wrong cause.
 
 ## Harden and refactor
 
