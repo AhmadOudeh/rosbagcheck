@@ -15,6 +15,10 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - uses: actions/checkout@v4
+      - name: Dev image (full log)
+        # scripts/dev.sh builds quietly; here the whole log is shown, so a failure can be read.
+        # --network=host: the build uses the runner's own DNS (the default build network could not resolve names).
+        run: docker build --progress=plain --network=host --target dev -t rosbagcheck-dev .
       - name: Build
         run: scripts/dev.sh build
       - name: Unit tests (C++)
@@ -26,5 +30,5 @@ jobs:
         run: if [ -f build/requirements.md ]; then cat build/requirements.md >> "$GITHUB_STEP_SUMMARY"; fi
       - name: Runtime image works
         run: |
-          docker build -t rosbagcheck .
+          docker build --network=host -t rosbagcheck .
           docker run --rm rosbagcheck --version
