@@ -7,8 +7,10 @@ labels: bug
 **Requirement:** which FR-/NFR- in docs/REQUIREMENTS.md is broken (if known)
 **Severity:** critical / high / medium / low, because ...
 **Priority:** high / medium / low, because ...
-(Scale: see "Bug reports" in CONTRIBUTING.md.)
+(Scale: see "Reporting a bug" in CONTRIBUTING.md.)
+**Reproducible:** always / sometimes / once
 **Environment:** `rosbagcheck --version`, OS and architecture, how you ran it (Docker image, `scripts/dev.sh`, native), commit
+**Found by:** e.g. exploratory session, automated test, normal use
 
 ### Steps to reproduce
 ```bash

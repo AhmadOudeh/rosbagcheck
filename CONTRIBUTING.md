@@ -23,14 +23,14 @@ folder, broken rules file) go to stderr (exit 2).
 
 | Path | What it does |
 |---|---|
-| `src/main.cpp` | Command line (CLI11), checks all input first, runs the checks per folder, sets the exit code. |
+| `src/main.cpp` | Command line (CLI11), loads the rules file, runs the checks per folder, sets the exit code. |
 | `src/checksum.*` | Check 1: parses `SHA256SUMS`, hashes each file in a stream (OpenSSL), compares. |
 | `src/closed.*` | Check 2: lists the `.mcap` files, asks the MCAP library for summary and footer. |
 | `src/mcap_impl.cpp` | Compiles the MCAP library (header-only) exactly once. |
 | `src/sensors.*` | Check 3: reads message times per topic, measures rate and longest gap, judges them against the rules. |
 | `src/rules.*` | Reads and validates the rules file (yaml-cpp). |
 | `src/report.*` | Result types (`PASS` / `FAIL` / `SKIP`) and the text and JSON output. |
-| `tests/unit/` | C++ unit tests (GoogleTest), one file per `src` module. |
+| `tests/unit/` | C++ unit tests (GoogleTest) for the pure logic: checksum, report, rules, sensors. |
 | `tests/component/` | Python component tests (pytest): run the real binary on generated recordings. |
 | `tests/component/recordings.py` | Writes synthetic MCAP recordings with the official Python writer. |
 | `examples/` | Rules example, demo data generator, `after_copy.sh`. |
@@ -42,7 +42,7 @@ are unit-tested without files.
 
 ## Development setup
 
-You need Linux or macOS with Docker and git. The dev container is Ubuntu 24.04 with every compiler,
+You need Docker and git (Linux, macOS, or Windows with WSL). The dev container is Ubuntu 24.04 with every compiler,
 library and Python package, the same image CI uses, so "works on my machine" means "works in CI".
 
 ```bash
@@ -95,7 +95,8 @@ otherwise it shows `NOT TESTED`.
 ## Reporting a bug
 
 Open an issue with the [bug report template](.github/ISSUE_TEMPLATE/bug_report.md): requirement,
-severity, priority, environment, steps to reproduce, actual, expected, evidence. Use invented test
+severity, priority, reproducible, environment, found by, steps to reproduce, actual, expected,
+evidence. Use invented test
 data only, never real recordings.
 
 **Severity** = how bad the effect is for the user when it happens.
@@ -115,10 +116,11 @@ Labels: `bug`, `severity: <level>`, `priority: <level>`.
 
 ## Making a change
 
-1. **Branch** from an up-to-date `main`: `feature/<name>`, `fix/<issue number>` or `docs/<name>`.
+1. **Branch** from an up-to-date `main`: `<type>/<name>`, e.g. `check/sensors-alive`,
+   `fix/8-missing-folder-batch`, `docs/requirements`, `ci/show-build-log`.
 2. **Commit** one logical change per commit, with an imperative subject (`Add SHA256SUMS parser`,
    not `added stuff`). Add a body only when it explains something the diff cannot, e.g. the cause of
-   a bug. Every commit builds and passes the tests.
+   a bug. Every commit builds and passes the tests, except the failing-test commit of a bug fix.
    - **Feature**: tests and code in the same commit.
    - **Bug fix**: first a commit with a test that fails and shows the bug, then the fix. The failing
      test proves the bug existed and stops it from coming back.
