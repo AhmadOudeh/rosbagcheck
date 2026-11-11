@@ -3,7 +3,8 @@
 # runtime: only the program, runs as a normal user
 FROM ubuntu:24.04 AS dev
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends \
+# Retries: a mirror that fails for a moment should not fail the build.
+RUN apt-get -o Acquire::Retries=5 update && apt-get -o Acquire::Retries=5 install -y --no-install-recommends \
         build-essential cmake pkg-config ca-certificates \
         libssl-dev libzstd-dev liblz4-dev nlohmann-json3-dev libyaml-cpp-dev libcli11-dev libgtest-dev \
         python3 python3-venv \
@@ -19,7 +20,7 @@ RUN cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && cmake --build build --targ
 
 FROM ubuntu:24.04 AS runtime
 ARG DEBIAN_FRONTEND=noninteractive
-RUN apt-get update && apt-get install -y --no-install-recommends libssl3t64 libzstd1 liblz4-1 libyaml-cpp0.8 \
+RUN apt-get -o Acquire::Retries=5 update && apt-get -o Acquire::Retries=5 install -y --no-install-recommends libssl3t64 libzstd1 liblz4-1 libyaml-cpp0.8 \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home checker
 COPY --from=build /src/build/rosbagcheck /usr/local/bin/rosbagcheck
