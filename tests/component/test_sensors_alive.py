@@ -1,10 +1,11 @@
 """Check 3, sensors alive: did every sensor keep sending? (equivalence classes and boundary values)"""
 import json
+import shutil
 
 import pytest
 
 from recordings import EXAMPLE_RULES as RULES
-from recordings import healthy_topics, make_recording, periodic
+from recordings import healthy_topics, make_recording, periodic, write_sums
 
 
 def check(run, folder, *options):
@@ -150,3 +151,23 @@ def test_text_report_shows_the_topic_table(run, tmp_path):
     camera = next(line for line in lines if line.strip().startswith("/camera/image_raw"))
     assert camera.split() == ["/camera/image_raw", "201", "20.00", "0.050",
                               ">=15", "Hz", "gap<=0.5", "s", "required", "PASS"]
+
+
+@pytest.mark.req("FR-3", "NFR-5")
+def test_same_data_in_two_files_fails(run, tmp_path):
+    """A copy of a file inside the folder must not double the rate of a slow sensor."""
+    topics = healthy_topics()
+    topics["/scan"] = periodic(5)  # rule needs 8 Hz; counted twice it would look like 10 Hz
+    folder = make_recording(tmp_path / "run", topics)
+    shutil.copy(folder / "run_000.mcap", folder / "run_001.mcap")
+    write_sums(folder)  # the copy was made before the checksums: check 1 passes
+    code, sensors, _ = check(run, folder, "--expect", str(RULES))
+    assert code == 1
+    assert sensors["status"] == "FAIL"
+    assert "run_000.mcap and run_001.mcap overlap in time" in sensors["problems"][0], sensors
+
+
+@pytest.mark.req("FR-3")
+def test_files_split_by_time_pass(run, tmp_path):
+    code, sensors, _ = check(run, make_recording(tmp_path / "run", files=3), "--expect", str(RULES))
+    assert code == 0, sensors

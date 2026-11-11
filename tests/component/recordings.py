@@ -65,9 +65,13 @@ def make_recording(folder, topics=None, files=1, **write_options):
     """A complete recording folder: `files` MCAP files split by time, plus SHA256SUMS."""
     folder.mkdir(parents=True, exist_ok=True)
     topics = healthy_topics() if topics is None else topics
+    # Like ROS 2: file k holds the k-th time slice, so the files follow each other and never overlap.
+    all_times = [t for times in topics.values() for t in times] or [START_NS]
+    first, last = min(all_times), max(all_times) + 1
+    edges = [first + (last - first) * k // files for k in range(files + 1)]
     for index in range(files):
-        # File k gets every files-th message of each topic: simple, and every file has data.
-        part = {topic: times[index::files] for topic, times in topics.items()}
+        part = {topic: [t for t in times if edges[index] <= t < edges[index + 1]]
+                for topic, times in topics.items()}
         write_mcap(folder / f"run_{index:03d}.mcap", part, **write_options)
     write_sums(folder)
     return folder
