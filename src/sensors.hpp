@@ -12,16 +12,29 @@
 
 namespace rosbagcheck {
 
+// First and last message time of one file.
+struct FileSpan {
+  std::string name;
+  std::uint64_t first_ns = 0;
+  std::uint64_t last_ns = 0;
+};
+
 // Log times (nanoseconds) of every message, per topic, over all files of one recording.
 struct Timeline {
   std::map<std::string, std::vector<std::uint64_t>> times;
   std::uint64_t start_ns = 0;  // first message on any topic
   std::uint64_t end_ns = 0;    // last message on any topic
+  std::vector<FileSpan> files;  // files with at least one message
 };
 
 // Reads only the log times, never keeps message data. Problems go into `problems`.
 Timeline read_timeline(const std::vector<std::filesystem::path>& recordings,
                        std::vector<std::string>& problems);
+
+// ROS 2 splits a recording into files one after another, so their times never overlap.
+// Overlap means the same data is in two files (e.g. a copy) and would be counted twice.
+// Touching (last == next first) is fine. Unit tested.
+std::vector<std::string> find_overlaps(std::vector<FileSpan> files);
 
 // Pure maths, unit tested.
 // rate = (messages - 1) / (recording end - recording start): a sensor that dies early gets a low

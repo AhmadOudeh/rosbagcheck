@@ -3,6 +3,8 @@
 
 #include "sensors.hpp"
 
+using rosbagcheck::FileSpan;
+using rosbagcheck::find_overlaps;
 using rosbagcheck::judge;
 using rosbagcheck::measure;
 using rosbagcheck::Status;
@@ -131,4 +133,23 @@ TEST(Judge, MissingOptionalTopicIsSkipped) {
 TEST(Judge, OptionalTopicThatIsPresentIsStillJudged) {
   std::vector<std::string> problems;
   EXPECT_EQ(judge(measured(1.0, 0.1), rule(10.0, {}, false), problems), Status::Fail);
+}
+
+// Overlapping files: the same data in two files would be counted twice.
+TEST(FindOverlaps, FilesOneAfterAnotherAreFine) {
+  EXPECT_TRUE(find_overlaps({{"a", 0, kSecond}, {"b", 2 * kSecond, 3 * kSecond}}).empty());
+}
+
+TEST(FindOverlaps, TouchingFilesAreFine) {  // boundary: last of one == first of the next
+  EXPECT_TRUE(find_overlaps({{"a", 0, kSecond}, {"b", kSecond, 2 * kSecond}}).empty());
+}
+
+TEST(FindOverlaps, IdenticalCopyIsFound) {
+  std::vector<std::string> problems = find_overlaps({{"a", 0, kSecond}, {"b", 0, kSecond}});
+  ASSERT_EQ(problems.size(), 1u);
+  EXPECT_EQ(problems[0].rfind("a and b overlap in time", 0), 0u);
+}
+
+TEST(FindOverlaps, OneNanosecondOverlapIsFoundInAnyFileOrder) {
+  EXPECT_EQ(find_overlaps({{"b", kSecond - 1, 2 * kSecond}, {"a", 0, kSecond}}).size(), 1u);
 }
