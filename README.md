@@ -44,7 +44,7 @@ You give rosbagcheck one or more recording folders. It runs three checks on each
 |---|---|---|
 | 1 Complete copy | Computes the SHA-256 checksum of every file and compares it with `SHA256SUMS`, written on the robot before the copy. | A listed file is missing or changed, an `.mcap` file is not listed, or `SHA256SUMS` is missing or broken. |
 | 2 Properly closed | Reads the end of every `.mcap` file, where a finished recording has its summary and footer. | A file has no valid summary and footer (recorder killed, disk full), or the folder has no `.mcap` files. |
-| 3 Sensors alive | Reads the time of every message and computes, per topic: count, rate and longest gap, compared with the limits in your [rules file](#rules-file). | A topic is too slow, silent too long, or missing. Skipped when check 2 fails. |
+| 3 Sensors alive | Reads the time of every message and computes, per topic: count, rate and longest gap, compared with the limits in your [rules file](#rules-file). | A topic is too slow, silent too long, or missing, or two files overlap in time (the same data twice). Skipped when check 2 fails. |
 
 Without a rules file, check 3 only measures and never fails. rosbagcheck only reads; it never changes
 a recording.

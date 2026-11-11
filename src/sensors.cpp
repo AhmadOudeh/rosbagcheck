@@ -40,8 +40,13 @@ Timeline read_timeline(const std::vector<std::filesystem::path>& recordings,
       continue;
     }
     mcap::LinearMessageView messages = reader.readMessages();
+    FileSpan span{name};
+    bool file_empty = true;
     for (const mcap::MessageView& view : messages) {
       std::uint64_t time = view.message.logTime;
+      if (file_empty || time < span.first_ns) span.first_ns = time;
+      if (file_empty || time > span.last_ns) span.last_ns = time;
+      file_empty = false;
       timeline.times[view.channel->topic].push_back(time);
       if (first || time < timeline.start_ns) timeline.start_ns = time;
       if (first || time > timeline.end_ns) timeline.end_ns = time;
@@ -50,9 +55,23 @@ Timeline read_timeline(const std::vector<std::filesystem::path>& recordings,
     if (!messages.status().ok()) {
       problems.push_back(name + ": cannot read the messages (" + messages.status().message + ")");
     }
+    if (!file_empty) timeline.files.push_back(span);
     reader.close();
   }
   return timeline;
+}
+
+std::vector<std::string> find_overlaps(std::vector<FileSpan> files) {
+  std::stable_sort(files.begin(), files.end(),  // stable: equal starts keep name order
+                   [](const FileSpan& a, const FileSpan& b) { return a.first_ns < b.first_ns; });
+  std::vector<std::string> problems;
+  for (std::size_t i = 1; i < files.size(); ++i) {
+    if (files[i].first_ns < files[i - 1].last_ns) {
+      problems.push_back(files[i - 1].name + " and " + files[i].name +
+                         " overlap in time: the same data may be in both files");
+    }
+  }
+  return problems;
 }
 
 TopicReport measure(const std::string& topic, std::vector<std::uint64_t> times,
@@ -118,6 +137,12 @@ CheckResult check_sensors(const std::vector<std::filesystem::path>& recordings,
   if (!result.problems.empty()) {
     result.status = Status::Fail;
     result.summary = "could not read the messages";
+    return result;
+  }
+  result.problems = find_overlaps(timeline.files);
+  if (!result.problems.empty()) {
+    result.status = Status::Fail;
+    result.summary = "files overlap in time";
     return result;
   }
   if (timeline.times.empty()) {
