@@ -2,6 +2,7 @@
 import json
 
 import pytest
+from recordings import make_recording
 
 
 @pytest.mark.req("FR-7")
@@ -36,11 +37,26 @@ def test_missing_folder_exits_2_and_names_it(run, tmp_path):
     assert result.stdout == ""
 
 
-@pytest.mark.req("FR-7")
-def test_one_missing_folder_stops_before_any_report(run, tmp_path):
-    result = run(str(tmp_path), str(tmp_path / "typo"))
+@pytest.mark.req("FR-7", "FR-8")
+def test_missing_folder_in_batch_still_reports_the_others(run, tmp_path):
+    first, missing, last = tmp_path / "run_a", tmp_path / "run_gone", tmp_path / "run_c"
+    make_recording(first)
+    make_recording(last)
+    result = run(str(first), str(missing), str(last))
     assert result.returncode == 2
-    assert result.stdout == ""
+    assert f"not a folder: {missing}" in result.stderr
+    assert result.stdout.index(f"recording {first}") < result.stdout.index(f"recording {last}")
+
+
+@pytest.mark.req("FR-6", "FR-7", "FR-8")
+def test_missing_folder_in_batch_json_lists_the_others(run, tmp_path):
+    first, missing = tmp_path / "run_a", tmp_path / "run_gone"
+    make_recording(first)
+    result = run("--json", str(first), str(missing))
+    assert result.returncode == 2
+    report = json.loads(result.stdout)
+    assert [r["path"] for r in report["recordings"]] == [str(first)]
+    assert report["healthy"] is False
 
 
 @pytest.mark.req("FR-6", "FR-8")
