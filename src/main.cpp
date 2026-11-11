@@ -42,7 +42,7 @@ int main(int argc, char** argv) {
     return app.exit(error) == 0 ? kHealthy : kInputError;
   }
 
-  // Check all input first, so a typo in the last folder does not waste a long run.
+  // A broken rules file stops at once: every folder would be judged with it.
   std::vector<rosbagcheck::TopicRule> rules;
   if (!rules_path.empty()) {
     try {
@@ -52,16 +52,16 @@ int main(int argc, char** argv) {
       return kInputError;
     }
   }
-  for (const std::string& folder : folders) {
-    if (!std::filesystem::is_directory(folder)) {
-      std::cerr << "rosbagcheck: error: not a folder: " << folder << "\n";
-      return kInputError;
-    }
-  }
-
   bool all_healthy = true;
+  bool any_missing = false;
   nlohmann::json recordings = nlohmann::json::array();
   for (const std::string& folder : folders) {
+    // A missing folder must not hide the reports of the others.
+    if (!std::filesystem::is_directory(folder)) {
+      std::cerr << "rosbagcheck: error: not a folder: " << folder << "\n";
+      any_missing = true;
+      continue;
+    }
     rosbagcheck::RecordingReport report;
     report.path = folder;
     report.copy = rosbagcheck::check_copy(folder);
@@ -84,9 +84,12 @@ int main(int argc, char** argv) {
 
   if (json) {
     nlohmann::json out = {{"rosbagcheck_version", ROSBAGCHECK_VERSION},
-                          {"healthy", all_healthy},
+                          {"healthy", all_healthy && !any_missing},
                           {"recordings", recordings}};
     std::cout << out.dump(2) << "\n";
+  }
+  if (any_missing) {
+    return kInputError;
   }
   return all_healthy ? kHealthy : kUnhealthy;
 }
