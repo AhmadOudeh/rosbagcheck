@@ -44,19 +44,19 @@ a GUI · creating `SHA256SUMS` (use `sha256sum`) · a dashboard of results over 
 |---|---|---|
 | FR-1 | **Complete copy.** Every file listed in `SHA256SUMS` exists and has the listed checksum. Fails on a missing or broken `SHA256SUMS`, a missing or changed file, and an `.mcap` file that is not listed. | A cut-off or missing file is the most common copy problem. |
 | FR-2 | **Properly closed.** Every `.mcap` file has its summary and footer. A folder without `.mcap` files fails. | If the recorder was killed, the file ends in the middle. |
-| FR-3 | **Sensors alive.** Per topic: message count, rate and longest gap (including recording start and end), compared with the rules. Skipped when FR-2 fails. | A silent sensor makes the analysis wrong. |
+| FR-3 | **Sensors alive.** Per topic: message count, rate and longest gap (including recording start and end), compared with the rules. Fails when the recording has no messages or when two files overlap in time (the same data twice). Skipped when FR-2 fails. | A silent sensor makes the analysis wrong. |
 | FR-4 | **Rules file.** Per topic `min_rate_hz`, `max_gap_s`, `required`. Limits are inclusive. Unknown keys and wrong values are rejected. | A typo must not silently turn off a rule. |
 | FR-5 | **Readable report.** PASS / FAIL / SKIP per check, every problem with its reason. | The field engineer decides in seconds. |
 | FR-6 | **JSON report** with `--json`. | For scripts and pipelines. |
-| FR-7 | **Exit codes.** 0 = all healthy, 1 = at least one unhealthy, 2 = usage or input error. | Scripts decide without reading text. |
-| FR-8 | **Several folders** in one run, reported in the given order. | A whole field day at once. |
+| FR-7 | **Exit codes.** 0 = all healthy, 1 = at least one unhealthy, 2 = usage or input error. 2 wins over 1. | Scripts decide without reading text. |
+| FR-8 | **Several folders** in one run, reported in the given order. A missing folder is named on stderr and does not stop the others. | A whole field day at once. |
 
 ## Non-functional requirements
 
 | ID | Requirement | How it is proven |
 |---|---|---|
 | NFR-1 | **Read-only.** rosbagcheck never changes a recording. | Files are byte-identical after a run; works on a write-protected folder. |
-| NFR-2 | **Low memory.** Files are streamed; memory does not grow with file size. | A 256 MB recording uses under 64 MB. |
+| NFR-2 | **Low memory.** Files are streamed: message data is never kept, only the time of each message (8 bytes). Memory does not grow with the size of the messages. | A 256 MB recording uses under 64 MB. |
 | NFR-3 | **Fast enough to run after every copy** (a typical run is about 2 GB). | A 256 MB recording is checked in under 10 s on a standard GitHub runner. |
 | NFR-4 | **Linux on x86-64 and arm64** (robot computers such as NVIDIA Jetson are arm64). | All tests pass on Ubuntu 24.04 on both in CI. Other systems use the Docker image. |
 | NFR-5 | **Easy to understand.** `--help` explains the checks and exit codes; every problem names the file, line or topic and the reason. | Component tests check the messages. |
